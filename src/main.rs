@@ -5,7 +5,7 @@ mod model;
 use model::mandelbrot::*;
 use raster::Image;
 use raster::Color;
-use std::time::{SystemTime, Duration};
+use std::time::SystemTime;
 
 fn determine_color(iterations: i32, max_iterations: i32) -> Color {
 
