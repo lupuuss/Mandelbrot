@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 raster = "0.0.7"
+num_cpus = "1.12.0"
