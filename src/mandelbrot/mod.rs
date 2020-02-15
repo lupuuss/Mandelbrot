@@ -29,7 +29,7 @@ impl Mandelbrot {
 
         let threads_count = split_work + if leftovers != 0 { 1 } else { 0 };
 
-        let mut barrier = Arc::new(Barrier::new(threads_count as usize));
+        let barrier = Arc::new(Barrier::new(threads_count as usize));
 
         let mut handles = Vec::with_capacity(threads_count as usize);
 
