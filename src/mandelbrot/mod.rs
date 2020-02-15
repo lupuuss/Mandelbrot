@@ -1,4 +1,5 @@
 pub mod trans;
+pub mod config;
 
 use std::vec::Vec;
 use trans::Frame;
