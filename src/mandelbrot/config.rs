@@ -19,7 +19,7 @@ impl ImageConfig {
         ImageConfig {
             re_range: (-2.0, 0.5),
             im_range: (-1.0, 1.0),
-            pixel_range: (1250, 1000),
+            pixel_range: (25000, 20000),
             max_iterations: 1000,
             threads: 16
         }
