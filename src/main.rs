@@ -39,7 +39,7 @@ fn main() {
 
     let image = frame.to_image(&config.max_iterations());
 
-    raster::save(&image, "img.png");
+    raster::save(&image, "img.png").unwrap();
     
     Command::new("powershell")
         .arg("start img.png")
