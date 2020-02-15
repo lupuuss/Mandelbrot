@@ -7,16 +7,16 @@ use std::thread::spawn;
 use std::sync::{Arc, Barrier};
 
 pub struct Mandelbrot {
-    max_iteations: i32,
-    pixel_range: (i32, i32)
+    max_iteations: u16,
+    pixel_range: (usize, usize)
 }
 
 impl Mandelbrot {
 
-    pub fn get_iterations_frame(&self, complex_range: ((f64, f64), (f64, f64)), split_work: i32) -> Frame {
+    pub fn get_iterations_frame(&self, complex_range: ((f64, f64), (f64, f64)), split_work: usize) -> Frame {
 
         let particles = self.between_pixels(complex_range);
-        let mut frame: Vec<i32> = vec![];
+        let mut frame: Vec<u16> = vec![];
     
         let (re_range, im_range) = complex_range;
 
@@ -29,15 +29,15 @@ impl Mandelbrot {
 
         let threads_count = split_work + if leftovers != 0 { 1 } else { 0 };
 
-        let barrier = Arc::new(Barrier::new(threads_count as usize));
+        let barrier = Arc::new(Barrier::new(threads_count));
 
-        let mut handles = Vec::with_capacity(threads_count as usize);
+        let mut handles = Vec::with_capacity(threads_count);
 
         let max = self.max_iteations;
 
-        for i in 0..split_work as i32 {
+        for i in 0..split_work {
             let c = barrier.clone();
-            handles.push(spawn(move || -> Vec<i32> {
+            handles.push(spawn(move || -> Vec<u16> {
                 
                 let result = Mandelbrot::get_frame_part(x, &max, (i * part_size, ((i + 1) * part_size)), width, particles);
                 c.wait();
@@ -48,7 +48,7 @@ impl Mandelbrot {
         if leftovers != 0 {
             let c = barrier.clone();
 
-            handles.push(spawn(move || -> Vec<i32> {
+            handles.push(spawn(move || -> Vec<u16> {
                 let tmp = split_work * part_size;
                 let result = Mandelbrot::get_frame_part(x, &max, (tmp, tmp + leftovers), width, particles);
                 c.wait();
@@ -65,7 +65,7 @@ impl Mandelbrot {
     
     }
 
-    pub fn new(max_iteations: i32, pixel_range: (i32, i32)) -> Mandelbrot {
+    pub fn new(max_iteations: u16, pixel_range: (usize, usize)) -> Mandelbrot {
         Mandelbrot {
             max_iteations: max_iteations,
             pixel_range: pixel_range
@@ -91,7 +91,7 @@ impl Mandelbrot {
     
     }
 
-    fn convergence_iterations(max_iteations: &i32, n: &(f64, f64)) -> i32 {
+    fn convergence_iterations(max_iteations: &u16, n: &(f64, f64)) -> u16 {
         
         let mut i = 0;
         let mut result = (0.0, 0.0);
@@ -108,18 +108,18 @@ impl Mandelbrot {
 
     fn get_frame_part(
         start: (f64, f64), 
-        max_iteations: &i32, 
-        lines: (i32, i32), 
-        width: i32, 
+        max_iteations: &u16, 
+        lines: (usize, usize), 
+        width: usize, 
         particles: (f64, f64)
-    ) -> Vec<i32> {
+    ) -> Vec<u16> {
 
         let mut x = start;
         x.1 -= lines.0 as f64 * particles.1;
 
         let real_range_start = start.0;
     
-        let mut frame_part: Vec<i32> = vec![];
+        let mut frame_part: Vec<u16> = vec![];
 
         for _ in (lines.0)..(lines.1) {
     

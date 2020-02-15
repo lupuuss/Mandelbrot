@@ -1,13 +1,13 @@
 use raster::{Image, Color};
 use palette::{Hsv, rgb::Srgb};
 pub struct Frame {
-    it_vector: Vec<i32>,
-    size: (i32, i32)
+    it_vector: Vec<u16>,
+    size: (usize, usize)
 }
 
 impl Frame {
 
-    pub fn new(it_vector: Vec<i32>, size: (i32, i32)) -> Frame {
+    pub fn new(it_vector: Vec<u16>, size: (usize, usize)) -> Frame {
         Frame {
             it_vector: it_vector,
             size: size
@@ -26,7 +26,7 @@ impl Frame {
         )
     }
 
-    fn determine_color(iterations: &i32, max_iterations: &i32) -> Color {
+    fn determine_color(iterations: &u16, max_iterations: &u16) -> Color {
 
         return if iterations == max_iterations {
             Color::black()
@@ -39,9 +39,11 @@ impl Frame {
         }
     }
 
-    pub fn to_image(&self, max_iterations: &i32) -> Image {
+    pub fn to_image(&self, max_iterations: &u16) -> Image {
 
-        let (width, height) = self.size;
+        let width = self.size.0 as i32;
+        let height = self.size.1 as i32;
+
         let mut image = Image::blank(width, height);
 
         for (index, iterations) in self.it_vector.iter().enumerate() {  

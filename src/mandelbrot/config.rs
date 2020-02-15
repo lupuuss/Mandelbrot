@@ -9,9 +9,9 @@ use std::io::Read;
 pub struct ImageConfig {
     re_range: (f64, f64),
     im_range: (f64, f64),
-    pixel_range: (i32, i32),
-    max_iterations: i32,
-    threads: i32
+    pixel_range: (usize, usize),
+    max_iterations: u16,
+    threads: usize
 }
 
 impl ImageConfig {
@@ -50,15 +50,15 @@ impl ImageConfig {
         self.im_range
     }
 
-    pub fn pixel_range(&self) -> (i32, i32) {
+    pub fn pixel_range(&self) -> (usize, usize) {
         self.pixel_range
     }
 
-    pub fn max_iterations(&self) -> i32 {
+    pub fn max_iterations(&self) -> u16 {
         self.max_iterations
     }
 
-    pub fn threads(&self) -> i32 {
+    pub fn threads(&self) -> usize {
         self.threads
     }
 }
