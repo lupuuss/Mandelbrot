@@ -2,6 +2,7 @@ extern crate raster;
 
 mod mandelbrot;
 extern crate num_cpus;
+extern crate palette;
 
 use mandelbrot::*;
 use std::time::SystemTime;
@@ -9,7 +10,9 @@ use std::time::SystemTime;
 
 fn main() {
 
-    let mandelbrot = Mandelbrot::new(1000, (2500, 2000));
+    let max_iterations = 7000;
+
+    let mandelbrot = Mandelbrot::new(max_iterations, (5000, 4000));
 
     let whole_start = SystemTime::now();
 
@@ -17,7 +20,7 @@ fn main() {
 
     println!("Elapsed time: {} ms", whole_start.elapsed().unwrap().as_millis());
 
-    let image = frame.to_image(&1000);
+    let image = frame.to_image(&max_iterations);
 
     raster::save(&image, "img.png");
 
