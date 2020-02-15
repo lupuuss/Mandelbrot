@@ -21,7 +21,7 @@ fn main() {
     let elements_count = (config.pixel_range().0 * config.pixel_range().1) as u64;
 
     println!(
-        "Minumum RAM usage for resolution {}x{}: {}",
+        "Minimum RAM usage for resolution {}x{}: {}",
          config.pixel_range().0, 
          config.pixel_range().1,
          bytes_string(calc_ram_req::<u16>(elements_count))
