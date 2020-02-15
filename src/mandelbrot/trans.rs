@@ -14,6 +14,7 @@ impl Frame {
         }
     }
 
+    #[allow(dead_code)]
     fn hsv_to_rgb(h: f32, s: f32, v: f32) -> Color {
         let color_hsv = Hsv::new(h, s, v);
         let color_rgb = Srgb::from(color_hsv);
@@ -31,11 +32,10 @@ impl Frame {
         return if iterations == max_iterations {
             Color::black()
         } else {
-            let iterations = *iterations as f32;
-            let max_iterations = *max_iterations as f32;
-            let modifier = iterations / max_iterations;
-
-            Frame::hsv_to_rgb(modifier * 180.0, 1.0, modifier)
+            let iterations = iterations * 500;
+            Color::rgb(
+                0, (iterations >> 8) as u8, ((iterations << 8) >> 8) as u8
+            )
         }
     }
 
