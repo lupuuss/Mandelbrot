@@ -44,8 +44,9 @@ impl Mandelbrot {
         for i in 0..split_work {
             let c = barrier.clone();
             handles.push(spawn(move || -> Vec<u16> {
-                
-                let result = Mandelbrot::get_frame_part(x, &max, (i * part_size, ((i + 1) * part_size)), width, particles);
+                let range = (i * part_size, ((i + 1) * part_size));
+                let result = Mandelbrot::get_frame_part(x, &max, range, width, particles);
+                println!("Thread#{} {:?} finished!", i, range);
                 c.wait();
                 return result;
             }));
@@ -57,6 +58,8 @@ impl Mandelbrot {
             handles.push(spawn(move || -> Vec<u16> {
                 let tmp = split_work * part_size;
                 let result = Mandelbrot::get_frame_part(x, &max, (tmp, tmp + leftovers), width, particles);
+
+                println!("Leftovers thread {:?} finished!", (tmp, tmp + leftovers));
                 c.wait();
                 return result;
             }))
