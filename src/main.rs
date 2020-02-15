@@ -8,6 +8,7 @@ mod mandelbrot;
 use mandelbrot::Mandelbrot;
 use mandelbrot::config::ImageConfig;
 use std::time::SystemTime;
+use std::process::Command;
 
 fn main() {
 
@@ -24,4 +25,9 @@ fn main() {
     let image = frame.to_image(&config.max_iterations());
 
     raster::save(&image, "img.png");
+
+    Command::new("powershell")
+    .arg("start img.png")
+    .output()
+    .unwrap();
 }
