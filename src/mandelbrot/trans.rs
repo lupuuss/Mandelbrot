@@ -32,9 +32,11 @@ impl Frame {
         return if iterations == max_iterations {
             Color::black()
         } else {
-            let iterations = iterations * 500;
-            Color::rgb(
-                0, (iterations >> 8) as u8, ((iterations << 8) >> 8) as u8
+            let iterations: u16 = iterations << 2;
+            let modifier = iterations as f32 / *max_iterations as f32;
+
+            Frame::hsv_to_rgb(
+                modifier * 360.0, 1.0, 1.0
             )
         }
     }
