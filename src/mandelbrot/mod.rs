@@ -13,10 +13,16 @@ pub struct Mandelbrot {
 
 impl Mandelbrot {
 
+    pub fn new(max_iteations: u16, pixel_range: (usize, usize)) -> Mandelbrot {
+        Mandelbrot {
+            max_iteations: max_iteations,
+            pixel_range: pixel_range
+        }
+    }
+
     pub fn get_iterations_frame(&self, complex_range: ((f64, f64), (f64, f64)), split_work: usize) -> Frame {
 
         let particles = self.between_pixels(complex_range);
-        let mut frame: Vec<u16> = vec![];
     
         let (re_range, im_range) = complex_range;
 
@@ -56,20 +62,15 @@ impl Mandelbrot {
             }))
         }
 
-        for handle in handles {
-            frame.append(&mut handle.join().unwrap());
-        }
-        
+        let mut frame = Vec::with_capacity(height * width);
 
+        for handle in handles {
+            let mut vec = handle.join().unwrap();
+            frame.append(&mut vec);
+        }
+    
         Frame::new(frame, self.pixel_range)
     
-    }
-
-    pub fn new(max_iteations: u16, pixel_range: (usize, usize)) -> Mandelbrot {
-        Mandelbrot {
-            max_iteations: max_iteations,
-            pixel_range: pixel_range
-        }
     }
 
     fn between_pixels(&self, complex_range: ((f64, f64), (f64, f64))) -> (f64, f64) {
@@ -106,20 +107,18 @@ impl Mandelbrot {
         return i;
     }
 
-    fn get_frame_part(
-        start: (f64, f64), 
-        max_iteations: &u16, 
-        lines: (usize, usize), 
-        width: usize, 
-        particles: (f64, f64)
-    ) -> Vec<u16> {
+    fn get_frame_part(start: (f64, f64), 
+                      max_iteations: &u16, 
+                      lines: (usize, usize), 
+                      width: usize, 
+                      particles: (f64, f64)) -> Vec<u16> {
 
         let mut x = start;
         x.1 -= lines.0 as f64 * particles.1;
 
         let real_range_start = start.0;
     
-        let mut frame_part: Vec<u16> = vec![];
+        let mut frame_part: Vec<u16> = Vec::with_capacity((lines.1 - lines.0) * width);
 
         for _ in (lines.0)..(lines.1) {
     
