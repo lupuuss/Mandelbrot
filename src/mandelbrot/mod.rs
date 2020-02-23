@@ -27,6 +27,22 @@ impl Mandelbrot {
         worker: &mut Worker<FramePart>
     ) -> usize {
 
+        return self.generate_frame_julia_on_worker(
+            complex_range,
+            split_work,
+            worker,
+            Option::None
+        )
+    }
+
+    pub fn generate_frame_julia_on_worker(
+        &self,
+        complex_range: ((f64, f64), (f64, f64)), 
+        split_work: usize, 
+        worker: &mut Worker<FramePart>,
+        julia_c: Option<(f64, f64)>
+    ) -> usize {
+
         let particles = self.between_pixels(complex_range);
     
         let (re_range, im_range) = complex_range;
@@ -47,7 +63,12 @@ impl Mandelbrot {
             worker.push(Box::new(move || -> FramePart {
 
                 let range = (i * part_size, ((i + 1) * part_size));
-                let result = Mandelbrot::get_frame_part(x, &max, range, width, particles);
+
+                let result = match julia_c {
+                    Some(c) => Mandelbrot::get_frame_part_julia(x, &max, range, width, particles, c),
+                    None => Mandelbrot::get_frame_part(x, &max, range, width, particles)
+                };
+
                 return FramePart::new(range, result);
             }));
         }
@@ -100,6 +121,20 @@ impl Mandelbrot {
         return i;
     }
 
+    fn convergence_iterations_julia(max_iteations: &u16, n: &(f64, f64), c: &(f64, f64)) -> u16 {
+        let mut i = 0;
+        let mut result = *n;
+
+        while result.0 * result.0 + result.1 * result.1 < 4.0 && i < *max_iteations {
+
+            result = Mandelbrot::complex_mul(&result, &result);
+            result = (result.0 + c.0, result.1 + c.1);
+            i += 1;
+        }
+
+        return i;
+    }
+
     fn get_frame_part(start: (f64, f64), 
                       max_iteations: &u16, 
                       lines: (usize, usize), 
@@ -118,6 +153,36 @@ impl Mandelbrot {
             for _ in 0..width {
 
                 frame_part.push(Mandelbrot::convergence_iterations(max_iteations, &x));
+                x.0 += particles.0;
+            }
+    
+            x.0 = real_range_start;
+    
+            x.1 -= particles.1;
+        }
+
+        frame_part
+    }
+
+    fn get_frame_part_julia(start: (f64, f64), 
+                            max_iteations: &u16, 
+                            lines: (usize, usize), 
+                            width: usize, 
+                            particles: (f64, f64),
+                            c: (f64, f64)) -> Vec<u16> {
+
+        let mut x = start;
+        x.1 -= lines.0 as f64 * particles.1;
+
+        let real_range_start = start.0;
+    
+        let mut frame_part: Vec<u16> = Vec::with_capacity((lines.1 - lines.0) * width);
+
+        for _ in (lines.0)..(lines.1) {
+    
+            for _ in 0..width {
+
+                frame_part.push(Mandelbrot::convergence_iterations_julia(max_iteations, &x, &c));
                 x.0 += particles.0;
             }
     

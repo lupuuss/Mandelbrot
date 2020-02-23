@@ -1,5 +1,6 @@
 use std::io;
 use std::io::prelude::*;
+use clap::ArgMatches;
 
 pub mod worker;
 pub mod loader;
@@ -57,4 +58,31 @@ pub fn calc_ram_req<StoredType>(total_elements: u64) -> u64 {
 
 pub fn calc_array_total_size<StoredType>(total_elements: u64) -> u64 {
     return std::mem::size_of::<StoredType>() as u64 * total_elements;
+}
+
+pub fn parse_julia_c(matches: &ArgMatches) -> Option<(f64, f64)> {
+
+    let julia_real = match matches.value_of("real") {
+        Some(real) => Some(real.parse::<f64>().unwrap()),
+        None => { println!("xD"); None }
+    };
+    let julia_imag = match matches.value_of("imag") {
+        Some(imag) => Some(imag.parse::<f64>().unwrap()),
+        None => None
+    };
+
+    if julia_imag.is_some() || julia_real.is_some() {
+        Some((julia_real.unwrap_or_default(), julia_imag.unwrap_or_default()))
+    } else {
+        None
+    }
+}
+
+pub fn numeric_validator(arg: String) -> Result<(), String> {
+
+    if arg.parse::<f64>().is_ok() {
+        Ok(())
+    } else {
+        Err(String::from("Must be a number!"))
+    }
 }
