@@ -78,7 +78,11 @@ impl Mandelbrot {
             worker.push(Box::new(move || -> FramePart {
                 let tmp = split_work * part_size;
                 let range = (tmp, tmp + leftovers);
-                let result = Mandelbrot::get_frame_part(x, &max, range, width, particles);
+                
+                let result = match julia_c {
+                    Some(c) => Mandelbrot::get_frame_part_julia(x, &max, range, width, particles, c),
+                    None => Mandelbrot::get_frame_part(x, &max, range, width, particles)
+                };
 
                 return FramePart::new(range, result);
             }));
