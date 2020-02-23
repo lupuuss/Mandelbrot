@@ -62,17 +62,17 @@ impl ImageWriter {
 
     pub fn write_part(&mut self, part: FramePart, max_iterations: u16)  {
         
-        let width = self.size.0 as i32;
+        let width = self.size.0;
 
-        let absolute = part.range.0 as i32 * width;
+        let absolute = part.range.0 * width;
 
         for (i, iterations) in part.it_vector.iter().enumerate() {
             
-            let pixel_number = absolute + i as i32;
+            let pixel_number = absolute + i;
 
             self.image.set_pixel(
-                pixel_number % width,
-                pixel_number / width,
+                (pixel_number % width) as i32,
+                (pixel_number / width) as i32,
                 self::determine_color(iterations, &max_iterations)
             ).unwrap();
         }
