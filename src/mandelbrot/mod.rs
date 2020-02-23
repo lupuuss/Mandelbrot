@@ -2,9 +2,9 @@ pub mod trans;
 pub mod config;
 
 use std::vec::Vec;
-use trans::Frame;
-use std::thread::spawn;
-use std::sync::{Arc, Barrier};
+use trans::FramePart;
+
+use super::utils::worker::Worker;
 
 pub struct Mandelbrot {
     max_iteations: u16,
@@ -20,7 +20,12 @@ impl Mandelbrot {
         }
     }
 
-    pub fn get_iterations_frame(&self, complex_range: ((f64, f64), (f64, f64)), split_work: usize) -> Frame {
+    pub fn generate_frame_on_worker(
+        &self,
+        complex_range: ((f64, f64), (f64, f64)), 
+        split_work: usize, 
+        worker: &mut Worker<FramePart>
+    ) -> usize {
 
         let particles = self.between_pixels(complex_range);
     
@@ -33,47 +38,32 @@ impl Mandelbrot {
         let part_size = height / split_work;
         let leftovers = height % split_work;
 
-        let threads_count = split_work + if leftovers != 0 { 1 } else { 0 };
-
-        let barrier = Arc::new(Barrier::new(threads_count));
-
-        let mut handles = Vec::with_capacity(threads_count);
+        let split_count = split_work + if leftovers != 0 { 1 } else { 0 };
 
         let max = self.max_iteations;
 
         for i in 0..split_work {
-            let c = barrier.clone();
-            handles.push(spawn(move || -> Vec<u16> {
+
+            worker.push(Box::new(move || -> FramePart {
+
                 let range = (i * part_size, ((i + 1) * part_size));
                 let result = Mandelbrot::get_frame_part(x, &max, range, width, particles);
-                println!("Thread#{} {:?} finished!", i, range);
-                c.wait();
-                return result;
+                return FramePart::new(range, result);
             }));
         }
 
         if leftovers != 0 {
-            let c = barrier.clone();
 
-            handles.push(spawn(move || -> Vec<u16> {
+            worker.push(Box::new(move || -> FramePart {
                 let tmp = split_work * part_size;
-                let result = Mandelbrot::get_frame_part(x, &max, (tmp, tmp + leftovers), width, particles);
+                let range = (tmp, tmp + leftovers);
+                let result = Mandelbrot::get_frame_part(x, &max, range, width, particles);
 
-                println!("Leftovers thread {:?} finished!", (tmp, tmp + leftovers));
-                c.wait();
-                return result;
-            }))
+                return FramePart::new(range, result);
+            }));
         }
 
-        let mut frame = Vec::with_capacity(height * width);
-
-        for handle in handles {
-            let mut vec = handle.join().unwrap();
-            frame.append(&mut vec);
-        }
-    
-        Frame::new(frame, self.pixel_range)
-    
+        return split_count;
     }
 
     fn between_pixels(&self, complex_range: ((f64, f64), (f64, f64))) -> (f64, f64) {

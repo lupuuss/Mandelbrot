@@ -3,20 +3,25 @@ extern crate num_cpus;
 extern crate palette;
 extern crate serde;
 
-mod mandelbrot;
-mod utils;
+pub mod mandelbrot;
+pub mod utils;
 
 use mandelbrot::Mandelbrot;
 use mandelbrot::config::ImageConfig;
+use mandelbrot::trans::{ImageWriter, FramePart};
 
-use utils::*;
+use utils::{*, worker::Worker};
 
 use std::time::SystemTime;
 use std::process::Command;
 
 fn main() {
 
+    print!("Loading config... ");
+
     let config = ImageConfig::read_form_file_or_default("config.json");
+
+    println!("Done!");
 
     let elements_count = (config.pixel_range().0 * config.pixel_range().1) as u64;
 
@@ -29,15 +34,28 @@ fn main() {
 
     pause();
 
+    let timer = SystemTime::now();
+   
     let mandelbrot = Mandelbrot::new(config.max_iterations(), config.pixel_range());
+    let mut worker: Worker<FramePart> = Worker::new(config.threads(), false);
 
-    let whole_start = SystemTime::now();
+    let parts = mandelbrot.generate_frame_on_worker(
+        (config.re_range(), config.im_range()), config.threads(), &mut worker
+    );
 
-    let frame = mandelbrot.get_iterations_frame((config.re_range(), config.im_range()), config.threads());
+    let mut image_writer = ImageWriter::new(config.pixel_range());
 
-    println!("Elapsed time: {}", format_time(whole_start.elapsed().unwrap().as_millis()));
+    for _ in 0..parts {
 
-    let image = frame.to_image(&config.max_iterations());
+        let result = worker.output_receiver().recv().unwrap();
+        println!("{:?} part done!", result.range());
+
+        image_writer.write_part(result, config.max_iterations());
+    }
+
+    println!("Elapsed time: {}", format_time(timer.elapsed().unwrap().as_millis()));
+
+    let image = image_writer.to_image();
 
     raster::save(&image, "img.png").unwrap();
     

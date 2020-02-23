@@ -1,6 +1,8 @@
 use std::io;
 use std::io::prelude::*;
 
+pub mod worker;
+
 pub fn pause() {
     let mut stdin = io::stdin();
     let mut stdout = io::stdout();
