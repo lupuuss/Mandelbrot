@@ -64,7 +64,7 @@ pub fn parse_julia_c(matches: &ArgMatches) -> Option<(f64, f64)> {
 
     let julia_real = match matches.value_of("real") {
         Some(real) => Some(real.parse::<f64>().unwrap()),
-        None => { println!("xD"); None }
+        None => None
     };
     let julia_imag = match matches.value_of("imag") {
         Some(imag) => Some(imag.parse::<f64>().unwrap()),
