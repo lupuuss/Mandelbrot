@@ -20,7 +20,7 @@ fn determine_color(iterations: &u16, max_iterations: &u16) -> Color {
         Color::black()
     } else {
         let iterations: u16 = iterations << 2;
-        let modifier = iterations as f32 / *max_iterations as f32;
+        let modifier = iterations as f32 / 1000.0;
 
         hsv_to_rgb(
             modifier * 360.0, 1.0, 1.0
