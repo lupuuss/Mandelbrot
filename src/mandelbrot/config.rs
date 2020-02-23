@@ -11,7 +11,8 @@ pub struct ImageConfig {
     im_range: (f64, f64),
     pixel_range: (usize, usize),
     max_iterations: u16,
-    threads: usize
+    threads: usize,
+    thread_split: usize
 }
 
 impl ImageConfig {
@@ -21,7 +22,8 @@ impl ImageConfig {
             im_range: (-1.0, 1.0),
             pixel_range: (1250, 1000),
             max_iterations: 1000,
-            threads: 16
+            threads: 16,
+            thread_split: 1
         }
     }
 
@@ -60,5 +62,9 @@ impl ImageConfig {
 
     pub fn threads(&self) -> usize {
         self.threads
+    }
+
+    pub fn thread_split(&self) -> usize {
+        self.thread_split
     }
 }

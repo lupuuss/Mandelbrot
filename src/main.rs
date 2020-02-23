@@ -64,7 +64,7 @@ fn main() {
     let mut worker: Worker<FramePart> = Worker::new(config.threads(), false);
 
     let parts = mandelbrot.generate_frame_julia_on_worker(
-        (config.re_range(), config.im_range()), config.threads(), &mut worker, julia_c
+        (config.re_range(), config.im_range()), config.thread_split() * config.threads(), &mut worker, julia_c
     );
 
     let mut image_writer = ImageWriter::new(config.pixel_range());
