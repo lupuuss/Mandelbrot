@@ -4,3 +4,4 @@ img.png
 Cargo.lock
 .vscode/
 config.json
+*.png

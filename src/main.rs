@@ -13,7 +13,7 @@ use mandelbrot::trans::{ImageWriter, FramePart};
 
 use utils::{worker::Worker, loader::ConsoleLoader};
 
-use std::time::SystemTime;
+use std::time::{SystemTime, UNIX_EPOCH};
 use std::process::Command;
 use clap::{Arg, App};
 
@@ -87,10 +87,18 @@ fn main() {
 
     let image = image_writer.to_image();
 
-    raster::save(&image, "img.png").unwrap();
+    let mut now_png = String::from(
+        SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis().to_string()
+    );
+    now_png.push_str(".png");
+
+    raster::save(&image, &now_png).unwrap();
     
+    let mut start_png = String::from("start ");
+    start_png.push_str(&now_png);
+
     Command::new("powershell")
-        .arg("start img.png")
+        .arg(start_png)
         .output()
         .unwrap();
 }
