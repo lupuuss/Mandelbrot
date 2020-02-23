@@ -2,6 +2,7 @@ use std::io;
 use std::io::prelude::*;
 
 pub mod worker;
+pub mod loader;
 
 pub fn pause() {
     let mut stdin = io::stdin();

@@ -10,7 +10,7 @@ use mandelbrot::Mandelbrot;
 use mandelbrot::config::ImageConfig;
 use mandelbrot::trans::{ImageWriter, FramePart};
 
-use utils::{*, worker::Worker};
+use utils::{* ,worker::Worker, loader::ConsoleLoader};
 
 use std::time::SystemTime;
 use std::process::Command;
@@ -45,13 +45,19 @@ fn main() {
 
     let mut image_writer = ImageWriter::new(config.pixel_range());
 
-    for _ in 0..parts {
+    let mut loader = ConsoleLoader::new(100);
+
+    for i in 0..parts {
 
         let result = worker.output_receiver().recv().unwrap();
-        println!("{:?} part done!", result.range());
+        
+        loader.update(((i as f64 / parts as f64) * 100.0).round());
+        loader.print_progress();
 
         image_writer.write_part(result, config.max_iterations());
     }
+
+    loader.finish();
 
     println!("Elapsed time: {}", format_time(timer.elapsed().unwrap().as_millis()));
 
