@@ -4,14 +4,14 @@ extern crate palette;
 extern crate serde;
 extern crate clap;
 
-pub mod mandelbrot;
+pub mod fractal;
 pub mod utils;
 
-use mandelbrot::Mandelbrot;
-use mandelbrot::config::ImageConfig;
-use mandelbrot::trans::{ImageWriter, FramePart};
-
 use utils::{worker::Worker, loader::ConsoleLoader};
+use fractal::Fractal;
+use fractal::trans::{FramePart, ImageWriter};
+use fractal::config::ImageConfig;
+use fractal::math::ComplexF64;
 
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::process::Command;
@@ -54,17 +54,26 @@ fn main() {
 
     let julia_c = utils::parse_julia_c(&matches);
 
-    match julia_c { Some(c) => println!("Picked julia c: {:?}", c), None => () }
+    let fractal_type =  match julia_c { 
+        Some(c) =>  { 
+            println!("Picked julia c: {:?}", c);
+            Fractal::JuliaSet(config.pixel_range(), config.max_iterations(), ComplexF64 { re: c.0, im: c.1 }) 
+        }, 
+        None => Fractal::Mandelbrot(config.pixel_range(), config.max_iterations()) 
+    }; 
 
     utils::pause();
 
     let timer = SystemTime::now();
    
-    let mandelbrot = Mandelbrot::new(config.max_iterations(), config.pixel_range());
+    let generator = Fractal::new_thread_safe_generator(fractal_type);
     let mut worker: Worker<FramePart> = Worker::new(config.threads(), false);
 
-    let parts = mandelbrot.generate_frame_julia_on_worker(
-        (config.re_range(), config.im_range()), config.thread_split() * config.threads(), &mut worker, julia_c
+    let parts = Fractal::generate_frame_on_worker(
+        generator, 
+        config.complex_range(),
+        config.threads() * config.thread_split(),
+        &mut worker
     );
 
     let mut image_writer = ImageWriter::new(config.pixel_range());

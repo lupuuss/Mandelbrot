@@ -3,6 +3,7 @@ use std::fs::File;
 use std::path::Path;
 use std::io::Write;
 use std::io::Read;
+use super::math::{Range, ComplexRangeF64, ComplexF64};
 
 
 #[derive(Serialize, Deserialize)]
@@ -44,12 +45,19 @@ impl ImageConfig {
         serde_json::from_str(&json_config).unwrap()
     }
 
-    pub fn re_range(&self) -> (f64, f64) {
-        self.re_range
+    pub fn re_range(&self) -> Range<f64> {
+        Range::new_from_tuple(self.re_range)
     }
 
-    pub fn im_range(&self) -> (f64, f64) {
-        self.im_range
+    pub fn im_range(&self) -> Range<f64> {
+        Range::new_from_tuple(self.im_range)
+    }
+
+    pub fn complex_range(&self) -> ComplexRangeF64 {
+        ComplexRangeF64::new(
+            self.re_range(),
+            self.im_range()
+        )
     }
 
     pub fn pixel_range(&self) -> (usize, usize) {
@@ -66,5 +74,60 @@ impl ImageConfig {
 
     pub fn thread_split(&self) -> usize {
         self.thread_split
+    }
+}
+
+pub struct FramePartConfig {
+    start: ComplexF64, 
+    lines: Range<usize>,
+    max_iter: u16,
+    width: usize,
+    particles: (f64, f64),
+    constant: ComplexF64
+}
+
+impl FramePartConfig {
+
+    pub fn new(
+        start: ComplexF64, 
+        lines: Range<usize>,
+        max_iter: u16,
+        width: usize, 
+        particles: (f64, f64),
+        constant: ComplexF64
+    ) -> Self {
+
+        FramePartConfig {
+            start: start, 
+            lines: lines,
+            max_iter: max_iter,
+            width: width,
+            particles: particles,
+            constant: constant
+        }
+    }
+
+    pub fn start(&self) -> ComplexF64 {
+        self.start
+    }
+
+    pub fn lines(&self) -> Range<usize> {
+        self.lines
+    }
+
+    pub fn max_iterations(&self) -> u16 {
+        self.max_iter
+    }
+
+    pub fn width(&self) -> usize {
+        self.width
+    }
+
+    pub fn particles(&self) -> (f64, f64) {
+        self.particles
+    }
+
+    pub fn constant(&self) -> ComplexF64 {
+        self.constant
     }
 }

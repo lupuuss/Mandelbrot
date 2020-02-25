@@ -1,5 +1,6 @@
 use raster::{Image, Color};
 use palette::{Hsv, rgb::Srgb};
+use super::math::Range;
 
 #[allow(dead_code)]
 fn hsv_to_rgb(h: f32, s: f32, v: f32) -> Color {
@@ -29,20 +30,20 @@ fn determine_color(iterations: &u16, max_iterations: &u16) -> Color {
 }
 
 pub struct FramePart {
-    range: (usize, usize),
+    lines: Range<usize>,
     it_vector: Vec<u16>
 }
 
 impl FramePart {
-    pub fn new(range: (usize, usize), it_vector: Vec<u16>) -> FramePart {
+    pub fn new(lines: Range<usize>, it_vector: Vec<u16>) -> FramePart {
         FramePart {
-            range: range,
+            lines: lines,
             it_vector: it_vector
         }
     }
 
-    pub fn range(&self) -> (usize, usize) {
-        self.range
+    pub fn range(&self) -> Range<usize> {
+        self.lines
     }
 }
 
@@ -64,7 +65,7 @@ impl ImageWriter {
         
         let width = self.size.0;
 
-        let absolute = part.range.0 * width;
+        let absolute = part.lines.start() * width;
 
         for (i, iterations) in part.it_vector.iter().enumerate() {
             
