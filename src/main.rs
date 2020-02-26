@@ -3,6 +3,7 @@ extern crate num_cpus;
 extern crate palette;
 extern crate serde;
 extern crate clap;
+extern crate sdl2;
 
 pub mod fractal;
 pub mod utils;
@@ -10,7 +11,7 @@ pub mod utils;
 use utils::{worker::Worker, loader::ConsoleLoader};
 use fractal::Fractal;
 use fractal::trans::{FramePart, ImageWriter};
-use fractal::config::ImageConfig;
+use fractal::config::Config;
 use fractal::math::ComplexF64;
 
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -39,7 +40,7 @@ fn main() {
 
     print!("Loading config... ");
 
-    let config = ImageConfig::read_form_file_or_default("config.json");
+    let config = Config::read_form_file_or_default("config.json");
 
     println!("Done!");
 

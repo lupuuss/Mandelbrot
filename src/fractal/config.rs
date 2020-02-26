@@ -7,7 +7,7 @@ use super::math::{Range, ComplexRangeF64, ComplexF64};
 
 
 #[derive(Serialize, Deserialize)]
-pub struct ImageConfig {
+pub struct Config {
     re_range: (f64, f64),
     im_range: (f64, f64),
     pixel_range: (usize, usize),
@@ -16,9 +16,9 @@ pub struct ImageConfig {
     thread_split: usize
 }
 
-impl ImageConfig {
+impl Config {
     pub fn default() -> Self {
-        ImageConfig {
+        Config {
             re_range: (-2.0, 0.5),
             im_range: (-1.0, 1.0),
             pixel_range: (1250, 1000),
@@ -28,13 +28,13 @@ impl ImageConfig {
         }
     }
 
-    pub fn read_form_file_or_default(path: &str) -> ImageConfig {
+    pub fn read_form_file_or_default(path: &str) -> Config {
 
         let config_path = Path::new(path);
 
         if !config_path.exists() {
 
-            let json_config = serde_json::to_string_pretty(&ImageConfig::default()).unwrap();
+            let json_config = serde_json::to_string_pretty(&Config::default()).unwrap();
 
             File::create(config_path).and_then(|mut file| file.write_all(&json_config.as_bytes())).unwrap();
         }
