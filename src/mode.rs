@@ -1,4 +1,0 @@
-enum Mode {
-    GuiDynamic,
-    CliStatic
-}

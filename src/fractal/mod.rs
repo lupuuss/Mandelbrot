@@ -8,7 +8,7 @@ use trans::FramePart;
 use config::FramePartConfig;
 use generators::{Mandelbrot, JuliaSet};
 
-use super::utils::worker::Worker;
+use super::user::worker::Worker;
 
 use std::sync::{Arc, RwLock};
 
