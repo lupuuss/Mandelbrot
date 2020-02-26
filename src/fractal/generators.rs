@@ -37,13 +37,9 @@ impl FractalGenerator for Mandelbrot {
         let mut i = 0;
         let mut result = constant;
 
-        while result.re * result.re + result.im * result.im < 4.0 && i < max_iter {
+        while result.norm_2() < 4.0 && i < max_iter {
 
-            result = ComplexF64::mul(result, result);
-            result = ComplexF64 {
-                re: result.re + c.re, im: result.im + c.im
-            };
-
+            result = result * result + c;
             i += 1;
         }
 
@@ -85,12 +81,9 @@ impl FractalGenerator for JuliaSet {
         let mut i = 0;
         let mut result = c;
 
-        while result.re * result.re + result.im * result.im < 4.0 && i < max_iter {
+        while result.norm_2() < 4.0 && i < max_iter {
 
-            result = ComplexF64::mul(result, result);
-            result = ComplexF64 {
-                re: result.re + constant.re, im: result.im + constant.im
-            };
+            result = result * result + constant;
 
             i += 1;
         }
