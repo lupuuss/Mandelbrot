@@ -7,12 +7,12 @@ use super::super::utils;
 use super::super::fractal as fractal;
 
 use fractal::Fractal;
-use fractal::trans::{FramePart, ImageWriter};
+use fractal::trans::FramePart;
 use fractal::math::ComplexF64;
+use fractal::trans::SurfaceWriter;
 
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::process::Command;
-
 use std::io::{stdout, stdin, Stdout};
 use std::io::prelude::*;
 
@@ -81,7 +81,10 @@ impl ModeRunner for CliRunner {
             &mut worker
         );
     
-        let mut image_writer = ImageWriter::new(config.pixel_range());
+        let width = config.pixel_range().0 as u32;
+        let height = config.pixel_range().1 as u32;
+
+        let mut surface_writer = SurfaceWriter::new_blank(width, height);
     
         let mut loader = Loader::new(50);
     
@@ -92,21 +95,19 @@ impl ModeRunner for CliRunner {
             loader.update(((i as f64 / parts as f64) * 100.0).round());
             loader.print_progress();
     
-            image_writer.write_part(result, config.max_iterations());
+            surface_writer.write_part(result, config.max_iterations());
         }
     
         loader.finish();
     
         println!("Elapsed time: {}", utils::format_time(timer.elapsed().unwrap().as_millis()));
     
-        let image = image_writer.to_image();
-    
         let mut now_png = String::from(
             SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis().to_string()
         );
         now_png.push_str(".png");
     
-        raster::save(&image, &now_png).unwrap();
+        surface_writer.save_to_image(&now_png).unwrap();
         
         let mut start_png = String::from("start ");
         start_png.push_str(&now_png);

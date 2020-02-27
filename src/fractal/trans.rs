@@ -1,6 +1,14 @@
-use raster::{Image, Color};
+use sdl2::surface::Surface;
+use sdl2::image::SaveSurface;
+use sdl2::video::WindowSurfaceRef;
+use sdl2::pixels::Color;
+
+use std::path::Path;
+use std::fs::File;
+
 use palette::{Hsv, rgb::Srgb};
 use super::math::Range;
+
 
 #[allow(dead_code)]
 fn hsv_to_rgb(h: f32, s: f32, v: f32) -> Color {
@@ -8,7 +16,7 @@ fn hsv_to_rgb(h: f32, s: f32, v: f32) -> Color {
     let color_rgb = Srgb::from(color_hsv);
 
 
-    return Color::rgb(
+    return Color::RGB(
         (color_rgb.red * 255.0) as u8,
         (color_rgb.green * 255.0) as u8,
         (color_rgb.blue * 255.0) as u8
@@ -18,7 +26,8 @@ fn hsv_to_rgb(h: f32, s: f32, v: f32) -> Color {
 fn determine_color(iterations: &u16, max_iterations: &u16) -> Color {
 
     return if iterations == max_iterations {
-        Color::black()
+        Color::RGB(0, 0, 0)
+
     } else {
         let iterations: u16 = iterations << 2;
         let modifier = iterations as f32 / 1000.0;
@@ -45,41 +54,101 @@ impl FramePart {
     pub fn range(&self) -> Range<usize> {
         self.lines
     }
+
+    pub fn vector(&self) -> &Vec<u16> {
+        &self.it_vector
+    }
 }
 
-pub struct ImageWriter {
-    size: (usize, usize),
-    image: Image
+pub trait GeneralizedSurface {
+    fn manipulate<F:  FnOnce(&mut [u8]) -> ()>(&mut self, f: F);
+    fn get_size(&self) -> (u32, u32);
 }
 
-impl ImageWriter {
+impl<'a> GeneralizedSurface for WindowSurfaceRef<'a> {
 
-    pub fn new(size: (usize, usize)) -> ImageWriter {
-        ImageWriter {
-            size: size,
-            image: Image::blank(size.0 as i32, size.1 as i32)
+    fn manipulate<F:  FnOnce(&mut [u8]) -> ()>(&mut self, f: F) {
+        self.with_lock_mut(f);
+    }
+
+    fn get_size(&self) -> (u32, u32) {
+        self.size()
+    }
+}
+
+impl<'a> GeneralizedSurface for Surface<'a> {
+
+    fn manipulate<F:  FnOnce(&mut [u8]) -> ()>(&mut self, f: F) {
+        self.with_lock_mut(f);
+    }
+
+    fn get_size(&self) -> (u32, u32) {
+        self.size()
+    }
+}
+
+pub struct SurfaceWriter<T> {
+    surface: T
+}
+
+impl<'a> SurfaceWriter<Surface<'a>> {
+    
+    pub fn new_blank(width: u32, hegiht: u32) -> Self {
+        SurfaceWriter {
+            surface: Surface::new(width, hegiht, sdl2::pixels::PixelFormatEnum::RGB888).unwrap()
+        }
+    }
+}
+
+impl<T: GeneralizedSurface> SurfaceWriter<T> {
+
+    pub fn new(surface: T) -> Self {
+        SurfaceWriter {
+            surface: surface
         }
     }
 
-    pub fn write_part(&mut self, part: FramePart, max_iterations: u16)  {
-        
-        let width = self.size.0;
+    pub fn write_part(&mut self, frame_part: FramePart, max_iter: u16) {
 
-        let absolute = part.lines.start() * width;
+        let width = (self.surface.get_size().0) as usize;
 
-        for (i, iterations) in part.it_vector.iter().enumerate() {
+        let bytes = 4;
+        let r_byte = 2;
+        let g_byte = 1;
+        let b_byte = 0;
+
+        self.surface.manipulate(|pixels| -> () {
+ 
+            let absolute = frame_part.lines.start() * width * bytes;
+
+            for (i, iter) in frame_part.vector().iter().enumerate() {
             
-            let pixel_number = absolute + i;
+                let color = determine_color(iter, &max_iter);
 
-            self.image.set_pixel(
-                (pixel_number % width) as i32,
-                (pixel_number / width) as i32,
-                self::determine_color(iterations, &max_iterations)
-            ).unwrap();
-        }
+                pixels[absolute + i * bytes + r_byte] = color.r;
+                pixels[absolute + i * bytes + g_byte] = color.g;
+                pixels[absolute + i * bytes + b_byte] = color.b;
+            }
+        });
     }
+}
 
-    pub fn to_image(self) -> Image {
-        self.image
+impl<T: SaveSurface> SurfaceWriter<T> {
+
+    pub fn save_to_image(self, path: &str) -> Result<(), String> {
+
+        let path = Path::new(path);
+
+        if !path.exists() {
+            File::create(path).unwrap();
+        }
+
+        return self.surface.save(path);
+    }
+}
+
+impl<'a> SurfaceWriter<WindowSurfaceRef<'a>> {
+    pub fn update_window(&mut self) -> Result<(), String> {
+        return self.surface.update_window();
     }
 }
