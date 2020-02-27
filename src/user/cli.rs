@@ -1,6 +1,7 @@
 use super::ModeRunner;
 use super::Config;
 use super::worker::Worker;
+use super::BaseRunner;
 
 use super::super::utils;
 
@@ -8,7 +9,6 @@ use super::super::fractal as fractal;
 
 use fractal::Fractal;
 use fractal::trans::FramePart;
-use fractal::math::ComplexF64;
 use fractal::trans::SurfaceWriter;
 
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -17,13 +17,15 @@ use std::io::{stdout, stdin, Stdout};
 use std::io::prelude::*;
 
 pub struct CliRunner {
-    julia_c: Option<(f64, f64)>
+    base: BaseRunner
 }
 
 impl CliRunner {
-    pub fn new(julia_c: Option<(f64, f64)>) -> Self {
+
+    pub fn new(config: Config, generator: Fractal) -> Self {
+
         CliRunner {
-            julia_c: julia_c
+            base: BaseRunner::new(config, generator)
         }
     }
 }
@@ -48,7 +50,9 @@ fn pause() {
 
 impl ModeRunner for CliRunner {
 
-    fn start(&mut self, config: &Config) {
+    fn start(&mut self) {
+
+        let config = self.base.config();
 
         let elements_count = (config.pixel_range().0 * config.pixel_range().1) as u64;
 
@@ -58,24 +62,15 @@ impl ModeRunner for CliRunner {
              config.pixel_range().1,
              utils::bytes_string(calc_ram_req::<u16>(elements_count))
         );
-        
-        let fractal_type =  match self.julia_c { 
-            Some(c) =>  { 
-                println!("Picked julia c: {:?}", c);
-                Fractal::JuliaSet(config.pixel_range(), config.max_iterations(), ComplexF64 { re: c.0, im: c.1 }) 
-            }, 
-            None => Fractal::Mandelbrot(config.pixel_range(), config.max_iterations()) 
-        }; 
     
         pause();
     
         let timer = SystemTime::now();
        
-        let generator = Fractal::new_thread_safe_generator(fractal_type);
         let mut worker: Worker<FramePart> = Worker::new(config.threads(), false);
     
         let parts = Fractal::generate_frame_on_worker(
-            generator, 
+            self.base.generator(), 
             config.complex_range(),
             config.threads() * config.thread_split(),
             &mut worker

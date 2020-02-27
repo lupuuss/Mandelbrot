@@ -33,6 +33,7 @@ fn main() {
                             .required(false))
                     .arg(Arg::with_name("cli")
                              .short("c")
+                             .long("cli")
                              .takes_value(false)
                              .required(false))
                     .get_matches();
@@ -42,8 +43,12 @@ fn main() {
 
     let julia_c = utils::parse_julia_c(&matches);
 
-    let mut mode_runner = Mode::new_runner(if is_cli { Mode::CliStatic(julia_c) } else { Mode::GuiDynamic });
+    let mut mode_runner = Mode::new_runner(
+            if is_cli { Mode::CliStatic} else { Mode::GuiDynamic },
+            config,
+            julia_c
+        );
 
-    mode_runner.start(&config);
+    mode_runner.start();
 
 }
