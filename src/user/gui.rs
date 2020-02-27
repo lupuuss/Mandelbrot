@@ -8,6 +8,8 @@ use fractal::Fractal;
 use fractal::trans::{FramePart, SurfaceWriter};
 
 use sdl2::event::Event;
+use sdl2::EventPump;
+use sdl2::mouse::{MouseButton, MouseWheelDirection};
 
 use std::time::Duration;
 
@@ -42,9 +44,11 @@ impl ModeRunner for GuiRunner {
 
         let mut event_pump = sdl_context.event_pump().unwrap();
         let full_split = config.thread_split() * config.threads();
-        let range = config.complex_range();
+        let mut range =config.complex_range();
 
         let mut worker: Worker<FramePart> = Worker::new(config.threads(), false);
+        
+
         Fractal::generate_frame_on_worker(
             self.base.generator(), 
             range,
@@ -52,19 +56,48 @@ impl ModeRunner for GuiRunner {
             &mut worker
         );
 
-        let reciver = worker.output_receiver();
+        let generator = self.base.generator();
 
-        'running: loop {
-            for event in event_pump.poll_iter() {
-                match event {
-                    Event::Quit {..}  => {
-                        break 'running;
-                    },
-                    _ => {}
-                }
-            }
+        let mut events_handler = EventsHandler::new(
+            generator.read().unwrap().between_pixels(range),
+            10.0,
+            config.pixel_range()
+        );
+
+        loop {
             
-            let result = reciver.try_recv();
+            events_handler.handle(&mut event_pump);
+
+            if events_handler.quit() {
+                break;
+            } 
+
+            if let Some(mv) = events_handler.range_move() {
+
+                range.move_range(mv);
+
+                Fractal::generate_frame_on_worker(
+                    self.base.generator(), 
+                    range,
+                    full_split,
+                    &mut worker
+                );
+            }
+
+            if let Some(shrink) = events_handler.range_shrink() {
+                range.shrink_range(shrink);
+
+                events_handler.update_particles(self.base.generator().read().unwrap().between_pixels(range));
+
+                Fractal::generate_frame_on_worker(
+                    self.base.generator(), 
+                    range,
+                    full_split,
+                    &mut worker
+                );
+            }
+
+            let result = worker.output_receiver().try_recv();
 
             if let Ok(frame_part) = result {
 
@@ -76,5 +109,107 @@ impl ModeRunner for GuiRunner {
 
             std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
         }
+    }
+}
+
+
+struct EventsHandler {
+    mouse_move: Option::<(i32, i32)>,
+    wheel_move_y: Option::<i32>,
+    wheel_before: bool,
+    particles: (f64, f64),
+    screen_prop: f64,
+    calculated_range_move: Option<(f64, f64)>,
+    calculated_range_shrink: Option<(f64, f64)>,
+    shrink_modifier: f64,
+    quit: bool
+}
+
+impl EventsHandler {
+
+    fn new(particles: (f64, f64), shrink_modifier: f64, size: (usize, usize)) -> Self {
+        EventsHandler {
+            mouse_move: None,
+            wheel_move_y: None,
+            wheel_before: false,
+            particles: particles,
+            screen_prop: size.0 as f64 / size.1 as f64,
+            calculated_range_move: None,
+            calculated_range_shrink: None,
+            shrink_modifier: shrink_modifier,
+            quit: false
+        }
+    }
+
+    fn handle(&mut self, event_pump: &mut EventPump) {
+
+        let mut wheel_event_occured = false;
+
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit {..}  => {
+                    self.quit = true;
+                },
+
+                Event::MouseMotion { mousestate, xrel, yrel, .. } => {
+                    
+                    if mousestate.left() && (xrel != 0 || yrel != 0) {
+                        let tmp = self.mouse_move.get_or_insert((0, 0));
+                        self.mouse_move = Some((tmp.0 + xrel, tmp.1 + yrel));
+                    }
+                }
+
+                Event::MouseButtonUp { mouse_btn, ..} if mouse_btn == MouseButton::Left => {
+                    if let Some(mv) = self.mouse_move.take() {
+
+                        let range_mv = (
+                            -self.particles.0 * mv.0 as f64,
+                            self.particles.1 * mv.1 as f64
+                        );                    
+
+                        self.calculated_range_move = Some(range_mv);
+                    }
+                }
+
+                Event::MouseWheel { y, direction, ..} if direction == MouseWheelDirection::Normal => {
+                    wheel_event_occured = true;
+                    self.wheel_before = true;
+                    *self.wheel_move_y.get_or_insert(0) += y;
+                }
+                _ => {}
+            }
+        }
+
+        if !wheel_event_occured && self.wheel_before {
+
+            let res_move_y = self.wheel_move_y.take();
+
+            if let Some(move_y) = res_move_y {
+
+                let modifier = self.shrink_modifier * move_y as f64;
+
+                self.calculated_range_shrink = Some(
+                    (self.particles.0 * modifier * self.screen_prop , self.particles.1 * modifier )
+                );
+            }
+        }
+    }
+
+    fn range_move(&mut self) -> Option<(f64, f64)> {
+        
+        return self.calculated_range_move.take()
+    }
+
+    fn range_shrink(&mut self) -> Option<(f64, f64)> {
+
+        return self.calculated_range_shrink.take()
+    }
+
+    fn quit(&self) -> bool {
+        self.quit
+    }
+
+    fn update_particles(&mut self, particles: (f64, f64)) {
+        self.particles = particles;
     }
 }

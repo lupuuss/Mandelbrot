@@ -81,6 +81,22 @@ impl<T: Sub<Output = T> + Copy> Range<T> {
     }
 }
 
+impl<T: Add<Output = T> + Copy> Range<T> {
+
+    pub fn shift(&mut self, mv: T) {
+        self.start = self.start + mv;
+        self.end = self.end + mv;
+    }
+}
+
+impl<T: Add<Output = T> + Sub<Output = T> + Copy> Range<T> {
+
+    pub fn shrink(&mut self, shrink: T) {
+        self.start = self.start + shrink;
+        self.end = self.end - shrink;
+    }
+}
+
 impl Range<usize> {
     pub fn iterable(&self) -> std::ops::Range<usize> {
         self.start..self.end
@@ -108,5 +124,15 @@ impl ComplexRangeF64 {
 
     pub fn im_range(&self) -> Range<f64> {
         self.im_range
+    }
+
+    pub fn move_range(&mut self, mv: (f64, f64)) {
+        self.re_range.shift(mv.0);
+        self.im_range.shift(mv.1);
+    }
+
+    pub fn shrink_range(&mut self, shrink: (f64, f64)) {
+        self.re_range.shrink(shrink.0);
+        self.im_range.shrink(shrink.1);
     }
 }
