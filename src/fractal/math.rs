@@ -131,8 +131,26 @@ impl ComplexRangeF64 {
         self.im_range.shift(mv.1);
     }
 
+    fn safe_shrink(range: &Range<f64>, shrink: f64) -> f64 {
+
+        if shrink > range.size() / 2.0 {
+
+            return range.size()  * 0.48;
+
+        } else {
+
+            return shrink;
+        }
+    }
+
     pub fn shrink_range(&mut self, shrink: (f64, f64)) {
-        self.re_range.shrink(shrink.0);
-        self.im_range.shrink(shrink.1);
+
+
+        self.re_range.shrink(
+            ComplexRangeF64::safe_shrink(&self.re_range, shrink.0)
+        );
+        self.im_range.shrink(
+            ComplexRangeF64::safe_shrink(&self.im_range, shrink.1)
+        );
     }
 }

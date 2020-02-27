@@ -48,7 +48,6 @@ impl ModeRunner for GuiRunner {
 
         let mut worker: Worker<FramePart> = Worker::new(config.threads(), false);
         
-
         Fractal::generate_frame_on_worker(
             self.base.generator(), 
             range,
@@ -60,9 +59,11 @@ impl ModeRunner for GuiRunner {
 
         let mut events_handler = EventsHandler::new(
             generator.read().unwrap().between_pixels(range),
-            10.0,
+            20.0,
             config.pixel_range()
         );
+
+        let mut left_on_worker = full_split;
 
         loop {
             
@@ -72,22 +73,18 @@ impl ModeRunner for GuiRunner {
                 break;
             } 
 
-            if let Some(mv) = events_handler.range_move() {
+            if left_on_worker == 0 {
 
-                range.move_range(mv);
+                if let Some(mv) = events_handler.range_move() {
 
-                Fractal::generate_frame_on_worker(
-                    self.base.generator(), 
-                    range,
-                    full_split,
-                    &mut worker
-                );
-            }
+                    range.move_range(mv);
+                }
 
-            if let Some(shrink) = events_handler.range_shrink() {
-                range.shrink_range(shrink);
+                if let Some(shrink) = events_handler.range_shrink() {
+                    range.shrink_range(shrink);
 
-                events_handler.update_particles(self.base.generator().read().unwrap().between_pixels(range));
+                    events_handler.update_particles(self.base.generator().read().unwrap().between_pixels(range));
+                }
 
                 Fractal::generate_frame_on_worker(
                     self.base.generator(), 
@@ -95,12 +92,15 @@ impl ModeRunner for GuiRunner {
                     full_split,
                     &mut worker
                 );
+
+                left_on_worker = full_split;
             }
 
             let result = worker.output_receiver().try_recv();
 
             if let Ok(frame_part) = result {
 
+                left_on_worker -= 1;
                 let mut surface_writer = SurfaceWriter::new(window.surface(&event_pump).unwrap());
 
                 surface_writer.write_part(frame_part, config.max_iterations());
@@ -116,11 +116,9 @@ impl ModeRunner for GuiRunner {
 struct EventsHandler {
     mouse_move: Option::<(i32, i32)>,
     wheel_move_y: Option::<i32>,
-    wheel_before: bool,
     particles: (f64, f64),
     screen_prop: f64,
     calculated_range_move: Option<(f64, f64)>,
-    calculated_range_shrink: Option<(f64, f64)>,
     shrink_modifier: f64,
     quit: bool
 }
@@ -131,19 +129,15 @@ impl EventsHandler {
         EventsHandler {
             mouse_move: None,
             wheel_move_y: None,
-            wheel_before: false,
             particles: particles,
             screen_prop: size.0 as f64 / size.1 as f64,
             calculated_range_move: None,
-            calculated_range_shrink: None,
             shrink_modifier: shrink_modifier,
             quit: false
         }
     }
 
     fn handle(&mut self, event_pump: &mut EventPump) {
-
-        let mut wheel_event_occured = false;
 
         for event in event_pump.poll_iter() {
             match event {
@@ -172,25 +166,10 @@ impl EventsHandler {
                 }
 
                 Event::MouseWheel { y, direction, ..} if direction == MouseWheelDirection::Normal => {
-                    wheel_event_occured = true;
-                    self.wheel_before = true;
+
                     *self.wheel_move_y.get_or_insert(0) += y;
                 }
                 _ => {}
-            }
-        }
-
-        if !wheel_event_occured && self.wheel_before {
-
-            let res_move_y = self.wheel_move_y.take();
-
-            if let Some(move_y) = res_move_y {
-
-                let modifier = self.shrink_modifier * move_y as f64;
-
-                self.calculated_range_shrink = Some(
-                    (self.particles.0 * modifier * self.screen_prop , self.particles.1 * modifier )
-                );
             }
         }
     }
@@ -201,8 +180,19 @@ impl EventsHandler {
     }
 
     fn range_shrink(&mut self) -> Option<(f64, f64)> {
+        
+        let res_move_y = self.wheel_move_y.take();
 
-        return self.calculated_range_shrink.take()
+        if let Some(move_y) = res_move_y {
+
+            let modifier = self.shrink_modifier * move_y as f64;
+
+            return Some(
+                (self.particles.0 * modifier * self.screen_prop , self.particles.1 * modifier )
+            );
+        }
+
+        return None;
     }
 
     fn quit(&self) -> bool {
