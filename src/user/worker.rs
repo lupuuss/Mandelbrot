@@ -120,6 +120,18 @@ impl<T: Send> Worker<T> {
 
         return min_i;
     }
+
+    pub fn is_occupied(&self) -> bool {
+
+        for occupancy_mutex in self.occupancy.iter() {
+
+            if *occupancy_mutex.lock().unwrap() != 0 {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
 
 impl<T> Worker<T> {

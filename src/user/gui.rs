@@ -9,7 +9,7 @@ use fractal::trans::{FramePart, SurfaceWriter};
 
 use sdl2::event::Event;
 use sdl2::EventPump;
-use sdl2::mouse::{MouseButton, MouseWheelDirection};
+use sdl2::mouse::MouseWheelDirection;
 
 use std::time::Duration;
 
@@ -46,14 +46,7 @@ impl ModeRunner for GuiRunner {
         let full_split = config.thread_split() * config.threads();
         let mut range =config.complex_range();
 
-        let mut worker: Worker<FramePart> = Worker::new(config.threads(), false);
-        
-        Fractal::generate_frame_on_worker(
-            self.base.generator(), 
-            range,
-            full_split,
-            &mut worker
-        );
+        let mut worker: Worker<FramePart> = Worker::new(config.threads(), true);
 
         let generator = self.base.generator();
 
@@ -63,7 +56,7 @@ impl ModeRunner for GuiRunner {
             config.pixel_range()
         );
 
-        let mut left_on_worker = full_split;
+        let mut changes_occured = true;
 
         loop {
             
@@ -73,18 +66,21 @@ impl ModeRunner for GuiRunner {
                 break;
             } 
 
-            if left_on_worker == 0 {
+            if let Some(mv) = events_handler.range_move() {
 
-                if let Some(mv) = events_handler.range_move() {
+                range.move_range(mv);
+                changes_occured = true;
 
-                    range.move_range(mv);
-                }
+            }
+            
+            if let Some(shrink) = events_handler.range_shrink() {
 
-                if let Some(shrink) = events_handler.range_shrink() {
-                    range.shrink_range(shrink);
-
-                    events_handler.update_particles(self.base.generator().read().unwrap().between_pixels(range));
-                }
+                range.shrink_range(shrink);
+                events_handler.update_particles(self.base.generator().read().unwrap().between_pixels(range));
+                changes_occured = true;
+            }
+            
+            if changes_occured && !worker.is_occupied() {
 
                 Fractal::generate_frame_on_worker(
                     self.base.generator(), 
@@ -92,22 +88,18 @@ impl ModeRunner for GuiRunner {
                     full_split,
                     &mut worker
                 );
-
-                left_on_worker = full_split;
+                changes_occured = false;
             }
 
-            let result = worker.output_receiver().try_recv();
+            for frame_part in worker.output_receiver().try_iter() {
 
-            if let Ok(frame_part) = result {
-
-                left_on_worker -= 1;
                 let mut surface_writer = SurfaceWriter::new(window.surface(&event_pump).unwrap());
 
                 surface_writer.write_part(frame_part, config.max_iterations());
                 surface_writer.update_window().unwrap();
             }
 
-            std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
+            std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 300));
         }
     }
 }
@@ -153,18 +145,6 @@ impl EventsHandler {
                     }
                 }
 
-                Event::MouseButtonUp { mouse_btn, ..} if mouse_btn == MouseButton::Left => {
-                    if let Some(mv) = self.mouse_move.take() {
-
-                        let range_mv = (
-                            -self.particles.0 * mv.0 as f64,
-                            self.particles.1 * mv.1 as f64
-                        );                    
-
-                        self.calculated_range_move = Some(range_mv);
-                    }
-                }
-
                 Event::MouseWheel { y, direction, ..} if direction == MouseWheelDirection::Normal => {
 
                     *self.wheel_move_y.get_or_insert(0) += y;
@@ -176,6 +156,16 @@ impl EventsHandler {
 
     fn range_move(&mut self) -> Option<(f64, f64)> {
         
+        if let Some(mv) = self.mouse_move.take() {
+
+            let range_mv = (
+                -self.particles.0 * mv.0 as f64,
+                self.particles.1 * mv.1 as f64
+            );                    
+
+            self.calculated_range_move = Some(range_mv);
+        }
+
         return self.calculated_range_move.take()
     }
 
