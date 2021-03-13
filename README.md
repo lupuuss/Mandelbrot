@@ -18,3 +18,21 @@ Julia Set for c = -0.10 + 0.65i
 
 ![image](https://user-images.githubusercontent.com/35232230/111034755-66476000-8417-11eb-82bc-38605b337c07.png)
 
+# CLI Mode
+
+Mandelbrot generated in CLI mode.
+Resolution = 2500x1800
+
+Running in CLI mode:
+
+```
+PS> .\mandelbrot_x64.exe --cli
+Minimum RAM usage for resolution 2500x1800: 18 MB (17.166 MiB)
+Press any key to continue...
+[==================================================] 100%
+Elapsed time: 8 s 73 ms
+```
+Generated image (open in new tab):
+![1615648714178](https://user-images.githubusercontent.com/35232230/111034910-11f0b000-8418-11eb-8ccf-6ae82c09c24c.png)
+
+
