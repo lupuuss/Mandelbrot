@@ -7,3 +7,6 @@ With proper arguments it can generate JPG images in CLI mode or display Julia se
 # Technology
 
 Application has been written in Rust language. SDL2 was used to diplay GUI mode and to generate JPG images in CLI mode.
+
+# GUI Mode
+[mandelbrot_set_gui](https://user-images.githubusercontent.com/35232230/111034589-b40f9880-8416-11eb-82ef-63aea42424d3.png)
