@@ -13,6 +13,7 @@ Application has been written in Rust language. SDL2 was used to diplay GUI mode 
 * Performance could be improved using OpenCL or at least SIMD (for now it's just simple multithreading).
 * Coloring could be much better (for now is just 'naive' scaling with iterations and the effect is not that impressive).
 * Config could be done using UI (for now you have to edit config.json to change configuration or by command line parameters).
+* Program is going to painic, if you scroll to deep (running out of f64 precision).
 
 # GUI Mode
 
